@@ -672,9 +672,25 @@
           bottom: -30px;
         }
       }
+      .retry-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #ffcc00;
+        border: none;
+        padding: 8px 16px;
+        font-size: 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .retry-button:hover {
+        background-color: #e6b800;
+      }
     </style>
   </head>
-  <body class="overflow-hidden">
+  <body>
     <div class="background-sky">
       <div class="cloud cloud-lg" style="top: 10%; left: 15%"></div>
       <div class="cloud cloud-md" style="top: 5%; right: 20%"></div>
@@ -683,151 +699,156 @@
       <div class="cloud cloud-md" style="top: 15%; left: 60%"></div>
 
       <div class="water"></div>
-
       <div class="palm-tree"></div>
 
       <div class="airplane">
-        <img src="pesawat.png" alt="Ikon Pesawat" />
+        <img src="pesawat.png" alt="Pesawat" />
       </div>
 
-      <img src="lita.png" alt="Karakter Lita" class="lita-character" />
-
+      <img src="lita.png" alt="Lita" class="lita-character" />
       <div class="suspension-bridge"></div>
 
       <div id="kebutuhan-drop-area" class="drop-area heart">
-        <span></span>
         <div class="category-label">KEBUTUHAN</div>
       </div>
 
       <div id="keinginan-drop-area" class="drop-area star">
-        <span></span>
         <div class="category-label">KEINGINAN</div>
       </div>
 
-      <div class="item-tray">
-        <div class="draggable-item" draggable="true" data-category="kebutuhan">
-          <img src="roti.png" alt="Roti" />
-        </div>
-        <div class="draggable-item" draggable="true" data-category="kebutuhan">
-          <img src="susu.png" alt="Susu" />
-        </div>
-        <div class="draggable-item" draggable="true" data-category="keinginan">
-          <img src="balon.png" alt="Balon" />
-        </div>
-        <div class="draggable-item" draggable="true" data-category="keinginan">
-          <img src="mainan.png" alt="Bebek Karet" />
-        </div>
-        <div class="draggable-item" draggable="true" data-category="keinginan">
-          <img src="eskrim.png" alt="Es Krim" />
-        </div>
-        <div class="draggable-item" draggable="true" data-category="kebutuhan">
-          <img src="buku.png" alt="Buku" />
-        </div>
+      <div class="item-tray" id="itemTray">
+        <!-- Akan diisi lewat JavaScript agar bisa di-reset -->
       </div>
 
       <div class="message-box">
         "Bantu Lita pilah harta karun! Mana yang KEBUTUHAN (penting sekali)?
         Mana yang KEINGINAN (Lita mau saja)?"
       </div>
+
+      <button id="toggleMusicBtn" class="music-toggle">🔊</button>
+      <button id="retryBtn" class="retry-button">🔁 Coba Lagi</button>
     </div>
 
+    <!-- Audio -->
     <audio id="successSound" src="success-340660.mp3" preload="auto"></audio>
     <audio id="failSound" src="fail-144746.mp3" preload="auto"></audio>
+    <audio
+      id="backgroundMusic"
+      src="audio.mp3"
+      autoplay
+      loop
+      preload="auto"
+    ></audio>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const draggables = document.querySelectorAll(".draggable-item");
-        const dropAreas = document.querySelectorAll(".drop-area");
+      const successSound = document.getElementById("successSound");
+      const failSound = document.getElementById("failSound");
+      const backgroundMusic = document.getElementById("backgroundMusic");
+      const toggleMusicBtn = document.getElementById("toggleMusicBtn");
+      const retryBtn = document.getElementById("retryBtn");
+      const itemTray = document.getElementById("itemTray");
+      const kebutuhanArea = document.getElementById("kebutuhan-drop-area");
+      const keinginanArea = document.getElementById("keinginan-drop-area");
 
-        // Get audio elements
-        const successSound = document.getElementById("successSound");
-        const failSound = document.getElementById("failSound");
+      const items = [
+        { src: "roti.png", category: "kebutuhan", alt: "Roti" },
+        { src: "susu.png", category: "kebutuhan", alt: "Susu" },
+        { src: "buku.png", category: "kebutuhan", alt: "Buku" },
+        { src: "balon.png", category: "keinginan", alt: "Balon" },
+        { src: "mainan.png", category: "keinginan", alt: "Mainan" },
+        { src: "eskrim.png", category: "keinginan", alt: "Es Krim" },
+      ];
 
-        let draggedItem = null;
+      let draggedItem = null;
 
-        draggables.forEach((item) => {
-          item.addEventListener("dragstart", (e) => {
-            draggedItem = item;
-            setTimeout(() => {
-              item.classList.add("opacity-50");
-            }, 0);
-          });
+      function createDraggableItem(item) {
+        const div = document.createElement("div");
+        div.className = "draggable-item";
+        div.draggable = true;
+        div.dataset.category = item.category;
+        div.innerHTML = `<img src="${item.src}" alt="${item.alt}" />`;
 
-          item.addEventListener("dragend", () => {
-            if (draggedItem) {
-              draggedItem.classList.remove("opacity-50");
-            }
-            draggedItem = null;
-          });
+        div.addEventListener("dragstart", () => {
+          draggedItem = div;
+          div.classList.add("opacity-50");
         });
 
-        dropAreas.forEach((area) => {
-          area.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            area.classList.add("border-solid", "border-blue-500");
-          });
-
-          area.addEventListener("dragleave", () => {
-            area.classList.remove("border-solid", "border-blue-500");
-          });
-
-          area.addEventListener("drop", (e) => {
-            e.preventDefault();
-            area.classList.remove("border-solid", "border-blue-500");
-
-            if (draggedItem) {
-              const itemCategory = draggedItem.dataset.category;
-              const targetAreaId = area.id;
-
-              if (
-                (itemCategory === "kebutuhan" &&
-                  targetAreaId === "kebutuhan-drop-area") ||
-                (itemCategory === "keinginan" &&
-                  targetAreaId === "keinginan-drop-area")
-              ) {
-                // Pindahkan item ke dalam drop area
-                area.appendChild(draggedItem);
-                draggedItem.style.position = "relative";
-                draggedItem.style.left = "0";
-                draggedItem.style.top = "0";
-                console.log(
-                  `Item '${draggedItem.alt}' berhasil di-drop ke ${targetAreaId}`
-                );
-                draggedItem.draggable = false;
-                draggedItem.style.cursor = "default";
-                // Play success sound
-                successSound.currentTime = 0; // Rewind to the beginning
-                successSound.play();
-              } else {
-                console.log("Item tidak cocok dengan kategori area ini.");
-                // Play fail sound
-                failSound.currentTime = 0; // Rewind to the beginning
-                failSound.play();
-              }
-            }
-          });
+        div.addEventListener("dragend", () => {
+          div.classList.remove("opacity-50");
+          draggedItem = null;
         });
 
-        // Placeholder for navigation functions (left/right arrows)
-        const leftButton = document.querySelector(".button-nav.left");
-        const rightButton = document.querySelector(".button-nav.right");
+        return div;
+      }
 
-        if (leftButton) {
-          leftButton.addEventListener("click", () => {
-            console.log("Tombol navigasi kiri diklik!");
-          });
-        }
+      function resetGame() {
+        kebutuhanArea.innerHTML = `<div class="category-label">KEBUTUHAN</div>`;
+        keinginanArea.innerHTML = `<div class="category-label">KEINGINAN</div>`;
+        itemTray.innerHTML = "";
+        items.forEach((item) => {
+          const el = createDraggableItem(item);
+          itemTray.appendChild(el);
+        });
+      }
 
-        if (rightButton) {
-          rightButton.addEventListener("click", () => {
-            console.log("Tombol navigasi kanan diklik!");
-          });
-        }
+      [kebutuhanArea, keinginanArea].forEach((area) => {
+        area.addEventListener("dragover", (e) => e.preventDefault());
 
-        window.addEventListener("resize", () => {
-          console.log("Window di-resize");
+        area.addEventListener("drop", (e) => {
+          e.preventDefault();
+          if (!draggedItem) return;
+
+          const itemCategory = draggedItem.dataset.category;
+          const targetId = area.id;
+
+          if (
+            (itemCategory === "kebutuhan" &&
+              targetId === "kebutuhan-drop-area") ||
+            (itemCategory === "keinginan" && targetId === "keinginan-drop-area")
+          ) {
+            area.appendChild(draggedItem);
+            draggedItem.draggable = false;
+            draggedItem.style.cursor = "default";
+            successSound.currentTime = 0;
+            successSound.play();
+          } else {
+            failSound.currentTime = 0;
+            failSound.play();
+          }
         });
       });
+
+      toggleMusicBtn.addEventListener("click", () => {
+        if (backgroundMusic.paused) {
+          backgroundMusic.play();
+          toggleMusicBtn.textContent = "🔊";
+        } else {
+          backgroundMusic.pause();
+          toggleMusicBtn.textContent = "🔇";
+        }
+      });
+
+      retryBtn.addEventListener("click", () => {
+        resetGame();
+      });
+
+      // Autoplay fallback
+      backgroundMusic.play().catch(() => {
+        console.log("Autoplay diblokir.");
+      });
+
+      document.body.addEventListener(
+        "click",
+        () => {
+          if (backgroundMusic.paused) {
+            backgroundMusic.play().catch(() => {});
+          }
+        },
+        { once: true }
+      );
+
+      // Jalankan saat pertama kali
+      resetGame();
     </script>
   </body>
 </html>
